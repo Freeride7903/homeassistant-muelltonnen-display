@@ -13,12 +13,12 @@ Tonne in der Farbe der Müllart, daneben die Müllart, die Restzeit und das
 ausgeschriebene Datum. Steht die Abholung heute oder morgen an, steht dort
 statt einer Zahl `HEUTE` bzw. `MORGEN` in Rot.
 
-![Seite 1: nächster Termin](docs/seite-1-naechster-termin.jpg)
+![Seite 2: die drei danach](docs/seite-2-danach.jpg)
 
 **Seite 2** listet die drei danach fälligen Müllarten mit Mini-Tonne, Datum und
 Restzeit.
 
-![Seite 2: die drei danach](docs/seite-2-danach.jpg)
+![Seite 1: nächster Termin](docs/seite-1-naechster-termin.jpg)
 
 Die Reihenfolge ergibt sich immer aus den Daten, es gibt keine feste Zuordnung
 von Müllart zu Position. Fehlt ein Sensor oder ist er noch ohne Wert, rutscht
