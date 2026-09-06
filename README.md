@@ -6,7 +6,7 @@ Querformat anzeigt. Die Termine liefert die Integration
 die über HACS installiert wird und weit über hundert Entsorger in Europa
 abdeckt.
 
-Zwei Seiten, umschaltbar mit der Gehäusetaste KEY:
+Zwei Seiten, die alle 5 Sekunden von allein wechseln:
 
 **Seite 1** zeigt formatfüllend nur den nächsten Termin: eine große gezeichnete
 Tonne in der Farbe der Müllart, daneben die Müllart, die Restzeit und das
@@ -20,7 +20,8 @@ Die Reihenfolge ergibt sich immer aus den Daten, es gibt keine feste Zuordnung
 von Müllart zu Position. Fehlt ein Sensor oder ist er noch ohne Wert, rutscht
 die Tonne ans Ende und zeigt `--`.
 
-BOOT schaltet die Hintergrundbeleuchtung.
+Die Gehäusetaste KEY schaltet zusätzlich von Hand weiter, BOOT schaltet die
+Hintergrundbeleuchtung.
 
 ## Hardware
 
@@ -119,6 +120,9 @@ Alles Nötige steht im Block `substitutions`. Je Tonne gibt es vier Werte:
 | `tN_body` | Korpusfarbe als Hex ohne `#` |
 | `tN_lid` | Deckelfarbe, etwas dunkler als der Korpus |
 
+Daneben legt `rotate_every` fest, wie lange eine Seite stehen bleibt.
+Voreingestellt sind 5 Sekunden.
+
 Die mitgelieferten Farben sind Biotonne orange, Papier grün, Restmüll
 anthrazit, Gelber Sack gelb. Papier ist je nach Region blau statt grün, die
 Werte dafür stehen als Kommentar daneben.
@@ -150,10 +154,15 @@ links oben. Zwei Hilfsfunktionen tragen die Arbeit:
 
 ### Taktung und Tasten
 
-Jeder Bildaufbau blockiert kurz die Hauptschleife, in der auch die Tasten
-abgefragt werden. Deshalb steht `update_interval: 30s` — das deckt nur die Uhr
-ab. Neue Termine lösen den Neuaufbau über `on_value` an den Sensoren selbst
-aus, ein Tastendruck über `component.update`.
+Das Display hat bewusst keinen eigenen Takt (`update_interval: never`). Neu
+gezeichnet wird, wenn die Seite wechselt, wenn jemand eine Taste drückt oder
+wenn über `on_value` neue Termine ankommen. Ein zweiter, unabhängiger Timer am
+Display würde nur zusätzlich Arbeit in die Hauptschleife legen, in der auch die
+Tasten abgefragt werden.
+
+Wer die Seiten lieber stehen lässt und nur von Hand blättert, entfernt den
+`interval`-Block und setzt am Display wieder einen Takt, etwa
+`update_interval: 30s` für die Uhr.
 
 Die Tasten brauchen `delayed_on_off: 30ms`. Ohne diesen Filter meldet ein
 prellender Kontakt zwei Drücke, die Seite springt hin und zurück und die Taste

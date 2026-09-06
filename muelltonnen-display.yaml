@@ -1,9 +1,9 @@
 # Muelltonnen-Anzeige fuer LilyGo T-Display-S3 (Querformat, 320x170)
 # ------------------------------------------------------------------
-# Zwei Seiten, umschaltbar mit der Taste KEY:
+# Zwei Seiten, die alle 5 s von allein wechseln:
 #   Seite 1  nur der naechste Termin, formatfuellend, mit grosser Tonne
 #   Seite 2  die drei danach faelligen Muellarten als Liste
-# BOOT schaltet die Hintergrundbeleuchtung.
+# KEY schaltet zusaetzlich von Hand weiter, BOOT die Hintergrundbeleuchtung.
 #
 # Jede Tonne wird in ihrer eigenen Farbe gezeichnet: Biomuell orange,
 # Papier gruen, Restmuell anthrazit, Gelber Sack gelb. Die Muellart steht
@@ -53,6 +53,9 @@ substitutions:
   t4_entity: sensor.waste_collection_schedule_gelber_sack
   t4_body: "FFC107"
   t4_lid: "F9A825"
+
+  # Sekunden je Seite
+  rotate_every: 5s
 
 esphome:
   name: ${device_name}
@@ -217,6 +220,14 @@ globals:
     restore_value: no
     initial_value: "0"
 
+# Seitenwechsel im Takt. Der Aufruf zeichnet gleich neu, deshalb steht am
+# Display selbst kein eigener Takt mehr.
+interval:
+  - interval: ${rotate_every}
+    then:
+      - lambda: "id(page_idx) = (id(page_idx) + 1) % 2;"
+      - component.update: main_display
+
 # ---------- Abholtermine aus Home Assistant ----------
 text_sensor:
   - platform: homeassistant
@@ -282,10 +293,10 @@ display:
     id: main_display
     # 90 = Querformat (320x170). Steht das Bild auf dem Kopf: 270.
     rotation: 90
-    # Jeder Neuaufbau blockiert kurz die Hauptschleife, in der auch die Tasten
-    # abgefragt werden. Deshalb nur ein langsamer Takt fuer die Uhr; neue
-    # Termine und Tastendruecke loesen den Neuaufbau selbst aus.
-    update_interval: 30s
+    # Kein eigener Takt: den Neuaufbau loesen der Seitenwechsel, ein
+    # Tastendruck und neue Termine aus. Ein zweiter Timer wuerde nur
+    # zusaetzlich die Hauptschleife blockieren, in der die Tasten haengen.
+    update_interval: never
     lambda: |-
       const int W = 320, H = 170;
       it.fill(id(c_bg));
