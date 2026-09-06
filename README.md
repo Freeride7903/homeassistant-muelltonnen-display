@@ -8,10 +8,14 @@ abdeckt.
 
 Zwei Seiten, die alle 5 Sekunden von allein wechseln:
 
+![Seite 1: nächster Termin](docs/seite-1-naechster-termin.jpg)
+
 **Seite 1** zeigt formatfüllend nur den nächsten Termin: eine große gezeichnete
 Tonne in der Farbe der Müllart, daneben die Müllart, die Restzeit und das
 ausgeschriebene Datum. Steht die Abholung heute oder morgen an, steht dort
 statt einer Zahl `HEUTE` bzw. `MORGEN` in Rot.
+
+![Seite 2: die drei danach](docs/seite-2-danach.jpg)
 
 **Seite 2** listet die drei danach fälligen Müllarten mit Mini-Tonne, Datum und
 Restzeit.
