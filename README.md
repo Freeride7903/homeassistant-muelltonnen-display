@@ -8,17 +8,17 @@ abdeckt.
 
 Zwei Seiten, die alle 5 Sekunden von allein wechseln:
 
-![Seite 1: nächster Termin](docs/seite-1-naechster-termin.jpg)
-
 **Seite 1** zeigt formatfüllend nur den nächsten Termin: eine große gezeichnete
 Tonne in der Farbe der Müllart, daneben die Müllart, die Restzeit und das
 ausgeschriebene Datum. Steht die Abholung heute oder morgen an, steht dort
 statt einer Zahl `HEUTE` bzw. `MORGEN` in Rot.
 
-![Seite 2: die drei danach](docs/seite-2-danach.jpg)
+![Seite 1: nächster Termin](docs/seite-1-naechster-termin.jpg)
 
 **Seite 2** listet die drei danach fälligen Müllarten mit Mini-Tonne, Datum und
 Restzeit.
+
+![Seite 2: die drei danach](docs/seite-2-danach.jpg)
 
 Die Reihenfolge ergibt sich immer aus den Daten, es gibt keine feste Zuordnung
 von Müllart zu Position. Fehlt ein Sensor oder ist er noch ohne Wert, rutscht
@@ -36,6 +36,8 @@ setzen.
 
 Andere Displays lassen sich verwenden, wenn die Koordinaten in der Lambda
 angepasst werden, siehe [Layout anpassen](#layout-anpassen).
+
+Gebaut und auf dem Gerät getestet mit ESPHome 2026.8.2.
 
 ## Einrichtung
 
