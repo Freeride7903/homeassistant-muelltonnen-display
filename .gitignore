@@ -1,0 +1,11 @@
+# Zugangsdaten
+secrets.yaml
+secrets.yaml.bak
+
+# ESPHome-Buildverzeichnis
+.esphome/
+*.bin
+
+# Betriebssystem
+.DS_Store
+Thumbs.db

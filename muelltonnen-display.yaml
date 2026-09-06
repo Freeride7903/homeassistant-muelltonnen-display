@@ -1,0 +1,469 @@
+# Muelltonnen-Anzeige fuer LilyGo T-Display-S3 (Querformat, 320x170)
+# ------------------------------------------------------------------
+# Zwei Seiten, umschaltbar mit der Taste KEY:
+#   Seite 1  nur der naechste Termin, formatfuellend, mit grosser Tonne
+#   Seite 2  die drei danach faelligen Muellarten als Liste
+# BOOT schaltet die Hintergrundbeleuchtung.
+#
+# Jede Tonne wird in ihrer eigenen Farbe gezeichnet: Biomuell orange,
+# Papier gruen, Restmuell anthrazit, Gelber Sack gelb. Die Muellart steht
+# immer in Weiss, damit sie auf jedem Tonnenton lesbar bleibt.
+#
+# Datenquelle sind die Sensoren der Integration "Waste Collection
+# Schedule". Deren Zustand ist Text der Form "Biotonne in 1 days"; die
+# Tageszahl wird unten im Lambda herausgeloest. "Today" bzw. "Tomorrow"
+# werden ebenfalls erkannt, falls das value_template der Integration
+# einmal umgestellt wird.
+#
+# Das Datum berechnet das Geraet selbst aus der HA-Zeit plus Tagesabstand,
+# es braucht also keine zusaetzlichen Template-Sensoren.
+#
+# Anpassen: nur der Block "substitutions". Die Entity-IDs stehen in Home
+# Assistant unter Einstellungen > Geraete & Dienste > Entitaeten; wie die
+# Tonnen heissen, legt der oertliche Entsorger fest.
+#
+# Benoetigte Eintraege in secrets.yaml: wifi_ssid, wifi_password,
+# api_key, ap_password. Siehe README.md.
+
+substitutions:
+  device_name: muelltonnen-display
+  device_friendly_name: Muelltonnen Display
+
+  # ---- Tonne 1: Biomuell ----
+  t1_label: "Biomüll"
+  t1_entity: sensor.waste_collection_schedule_biotonne
+  t1_body: "F57C00"      # Korpus orange
+  t1_lid: "E65100"       # Deckel dunkler
+
+  # ---- Tonne 2: Papier ----
+  # Papier ist je nach Entsorger blau (1565C0 / 0D47A1) oder gruen.
+  t2_label: "Papier"
+  t2_entity: sensor.waste_collection_schedule_papiertonne
+  t2_body: "2E7D32"      # Korpus gruen
+  t2_lid: "1B5E20"
+
+  # ---- Tonne 3: Restmuell ----
+  t3_label: "Restmüll"
+  t3_entity: sensor.waste_collection_schedule_restmuell
+  t3_body: "546E7A"
+  t3_lid: "263238"
+
+  # ---- Tonne 4: Gelber Sack ----
+  t4_label: "Gelber Sack"
+  t4_entity: sensor.waste_collection_schedule_gelber_sack
+  t4_body: "FFC107"
+  t4_lid: "F9A825"
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${device_friendly_name}
+
+esp32:
+  variant: esp32s3
+  flash_size: 16MB
+  framework:
+    type: esp-idf
+
+logger:
+
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: Muelltonnen Display
+    password: !secret ap_password
+
+captive_portal:
+
+time:
+  - platform: homeassistant
+    id: ha_time
+
+# ---------- Display-Hardware: T-Display-S3 1.9" ----------
+psram:
+  mode: octal
+  speed: 80MHz
+
+output:
+  - platform: ledc
+    pin: GPIO38
+    frequency: 2000Hz
+    id: backlight_output
+
+light:
+  - platform: monochromatic
+    output: backlight_output
+    name: "Display Hintergrundbeleuchtung"
+    id: backlight
+    restore_mode: ALWAYS_ON
+    default_transition_length: 0s
+
+spi:
+  type: octal
+  clk_pin: 8
+  data_pins:
+    - 39
+    - 40
+    - 41
+    - 42
+    - number: 45
+      ignore_strapping_warning: true
+    - number: 46
+      ignore_strapping_warning: true
+    - 47
+    - 48
+
+# ---------- Schriften ----------
+font:
+  - file:
+      type: gfonts
+      family: Roboto
+      weight: 900
+    id: font_hero
+    size: 56
+    glyphs: "0123456789"
+  - file:
+      type: gfonts
+      family: Roboto
+      weight: 900
+    id: font_art
+    size: 30
+    glyphsets:
+      - GF_Latin_Core
+  - file:
+      type: gfonts
+      family: Roboto
+      weight: 900
+    id: font_word
+    size: 30
+    glyphsets:
+      - GF_Latin_Core
+  - file:
+      type: gfonts
+      family: Roboto
+      weight: 700
+    id: font_name
+    size: 19
+    glyphsets:
+      - GF_Latin_Core
+  - file:
+      type: gfonts
+      family: Roboto
+      weight: 700
+    id: font_row
+    size: 15
+    glyphsets:
+      - GF_Latin_Core
+  - file:
+      type: gfonts
+      family: Roboto
+      weight: 700
+    id: font_head
+    size: 13
+    glyphsets:
+      - GF_Latin_Core
+  - file: "gfonts://Roboto"
+    id: font_small
+    size: 13
+    glyphsets:
+      - GF_Latin_Core
+
+# ---------- Farben ----------
+color:
+  - id: c_bg
+    hex: "101014"
+  - id: c_head_bg
+    hex: "1E1E26"
+  - id: c_card
+    hex: "1A1A22"
+  - id: c_white
+    hex: "FFFFFF"
+  - id: c_grey
+    hex: "9E9E9E"
+  - id: c_dim
+    hex: "6B6B75"
+  - id: c_alert
+    hex: "E53935"
+  - id: c_wheel
+    hex: "1B1B1B"
+  - id: c_t1_body
+    hex: "${t1_body}"
+  - id: c_t1_lid
+    hex: "${t1_lid}"
+  - id: c_t2_body
+    hex: "${t2_body}"
+  - id: c_t2_lid
+    hex: "${t2_lid}"
+  - id: c_t3_body
+    hex: "${t3_body}"
+  - id: c_t3_lid
+    hex: "${t3_lid}"
+  - id: c_t4_body
+    hex: "${t4_body}"
+  - id: c_t4_lid
+    hex: "${t4_lid}"
+
+# ---------- Seitenumschaltung ----------
+globals:
+  - id: page_idx
+    type: int
+    restore_value: no
+    initial_value: "0"
+
+# ---------- Abholtermine aus Home Assistant ----------
+text_sensor:
+  - platform: homeassistant
+    id: waste_1
+    entity_id: ${t1_entity}
+    on_value:
+      - component.update: main_display
+  - platform: homeassistant
+    id: waste_2
+    entity_id: ${t2_entity}
+    on_value:
+      - component.update: main_display
+  - platform: homeassistant
+    id: waste_3
+    entity_id: ${t3_entity}
+    on_value:
+      - component.update: main_display
+  - platform: homeassistant
+    id: waste_4
+    entity_id: ${t4_entity}
+    on_value:
+      - component.update: main_display
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO14
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    name: "Taste KEY"
+    id: btn_key
+    filters:
+      # Entprellen. Ohne Filter meldet ein prellender Kontakt zwei Druecke;
+      # bei zwei Seiten landet man dann wieder auf der alten Seite und es
+      # sieht aus, als haette die Taste nicht reagiert.
+      - delayed_on_off: 30ms
+    on_press:
+      - lambda: "id(page_idx) = (id(page_idx) + 1) % 2;"
+      - component.update: main_display
+  - platform: gpio
+    pin:
+      number: GPIO0
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    name: "Taste BOOT"
+    id: btn_boot
+    filters:
+      # Entprellen. Ohne Filter meldet ein prellender Kontakt zwei Druecke;
+      # bei zwei Seiten landet man dann wieder auf der alten Seite und es
+      # sieht aus, als haette die Taste nicht reagiert.
+      - delayed_on_off: 30ms
+    on_press:
+      - light.toggle: backlight
+
+# ---------- Anzeige ----------
+display:
+  - platform: mipi_spi
+    model: t-display-s3
+    id: main_display
+    # 90 = Querformat (320x170). Steht das Bild auf dem Kopf: 270.
+    rotation: 90
+    # Jeder Neuaufbau blockiert kurz die Hauptschleife, in der auch die Tasten
+    # abgefragt werden. Deshalb nur ein langsamer Takt fuer die Uhr; neue
+    # Termine und Tastendruecke loesen den Neuaufbau selbst aus.
+    update_interval: 30s
+    lambda: |-
+      const int W = 320, H = 170;
+      it.fill(id(c_bg));
+
+      // ---- Tageszahl aus dem Text der Integration loesen ----
+      // "Biotonne in 12 days" -> 12, "... Today" -> 0.
+      // Ohne Zustand kommt 9999 zurueck, damit die Tonne beim Sortieren
+      // hinten landet.
+      auto days_of = [](esphome::text_sensor::TextSensor *ts) -> int {
+        if (!ts->has_state()) return 9999;
+        std::string s = ts->state;
+        if (s.empty() || s == "unknown" || s == "unavailable") return 9999;
+        std::string low = s;
+        for (auto &ch : low) ch = tolower((unsigned char) ch);
+        if (low.find("today") != std::string::npos ||
+            low.find("heute") != std::string::npos) return 0;
+        if (low.find("tomorrow") != std::string::npos ||
+            low.find("morgen") != std::string::npos) return 1;
+        // Die Tonnennamen enthalten keine Ziffern, also ist die letzte
+        // Zahl im Text der Tagesabstand.
+        int val = 9999;
+        for (size_t i = 0; i < s.size(); ) {
+          if (isdigit((unsigned char) s[i])) {
+            val = atoi(s.c_str() + i);
+            while (i < s.size() && isdigit((unsigned char) s[i])) i++;
+          } else {
+            i++;
+          }
+        }
+        return val;
+      };
+
+      const int N = 4;
+      const char *names[N] = {"${t1_label}", "${t2_label}", "${t3_label}", "${t4_label}"};
+      Color body[N] = {id(c_t1_body), id(c_t2_body), id(c_t3_body), id(c_t4_body)};
+      Color lid[N]  = {id(c_t1_lid),  id(c_t2_lid),  id(c_t3_lid),  id(c_t4_lid)};
+      int days[N] = {days_of(id(waste_1)), days_of(id(waste_2)),
+                     days_of(id(waste_3)), days_of(id(waste_4))};
+
+      // Reihenfolge nach Tagen; gleiche Werte behalten ihre Reihenfolge
+      int ord[N] = {0, 1, 2, 3};
+      for (int a = 0; a < N - 1; a++)
+        for (int b = 0; b < N - 1 - a; b++)
+          if (days[ord[b]] > days[ord[b + 1]]) {
+            int t = ord[b]; ord[b] = ord[b + 1]; ord[b + 1] = t;
+          }
+
+      // ---- Muelltonne zeichnen ----
+      // x,y = linke obere Ecke des Deckels, h = Hoehe ohne Raeder.
+      // cbg ist der Untergrund, auf dem die Tonne steht: damit werden die
+      // schraegen Ecken unten weggeschnitten.
+      auto draw_bin = [&](int x, int y, int w, int h, Color cb, Color cl, Color cbg) {
+        int lid_h = h / 6;   if (lid_h < 4)  lid_h = 4;
+        int over  = w / 8;   if (over < 2)   over = 2;    // Deckelueberstand
+        int grip_w = w / 3;  if (grip_w < 4) grip_w = 4;
+        int grip_h = h / 20; if (grip_h < 2) grip_h = 2;
+
+        // Griff und Deckel
+        it.filled_rectangle(x + (w - grip_w) / 2, y - grip_h, grip_w, grip_h, cl);
+        it.filled_rectangle(x - over, y, w + 2 * over, lid_h, cl);
+
+        // Korpus, unten leicht angeschraegt
+        int by = y + lid_h + 1;
+        int bh = h - lid_h - 1;
+        int taper = w / 10; if (taper < 1) taper = 1;
+        it.filled_rectangle(x, by, w, bh, cb);
+        it.filled_triangle(x, by + bh, x, by + bh - bh / 3,
+                           x + taper, by + bh, cbg);
+        it.filled_triangle(x + w - 1, by + bh, x + w - 1, by + bh - bh / 3,
+                           x + w - 1 - taper, by + bh, cbg);
+
+        // zwei Rillen als Struktur
+        for (int k = 1; k <= 2; k++) {
+          int ry = by + bh * k / 4;
+          it.line(x + 2, ry, x + w - 3, ry, cl);
+        }
+
+        // Raeder
+        int r = w / 7; if (r < 2) r = 2;
+        it.filled_circle(x + r + 1, by + bh + r - 1, r, id(c_wheel));
+        it.filled_circle(x + w - r - 2, by + bh + r - 1, r, id(c_wheel));
+      };
+
+      // ---- Datum aus HA-Zeit plus Tagesabstand ----
+      // lang = true liefert "Montag, 07.09.", sonst "Mo 07.09."
+      auto date_str = [&](int d, bool lang, char *out, size_t n) {
+        static const char *kurz[7] = {"So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"};
+        static const char *voll[7] = {"Sonntag", "Montag", "Dienstag", "Mittwoch",
+                                      "Donnerstag", "Freitag", "Samstag"};
+        auto tnow = id(ha_time).now();
+        if (!tnow.is_valid() || d >= 9999) { snprintf(out, n, "--.--."); return; }
+        time_t t = (time_t) tnow.timestamp + (time_t) d * 86400;
+        struct tm lt;
+        localtime_r(&t, &lt);
+        int wd = lt.tm_wday % 7;
+        if (lang) snprintf(out, n, "%s, %02d.%02d.", voll[wd], lt.tm_mday, lt.tm_mon + 1);
+        else      snprintf(out, n, "%s %02d.%02d.", kurz[wd], lt.tm_mday, lt.tm_mon + 1);
+      };
+
+      // ---- Seitenpunkte unten mittig ----
+      auto page_dots = [&](int active) {
+        for (int p = 0; p < 2; p++) {
+          int cx = W / 2 - 7 + p * 14;
+          if (p == active) it.filled_circle(cx, H - 6, 3, id(c_white));
+          else             it.circle(cx, H - 6, 3, id(c_dim));
+        }
+      };
+
+      char buf[40];
+
+      if (id(page_idx) == 0) {
+        // ================= Seite 1: naechster Termin =================
+        int i = ord[0];
+        int d = days[i];
+
+        // Farbstreifen am linken Rand als Signal fuer die Muellart
+        it.filled_rectangle(0, 0, 6, H, body[i]);
+
+        draw_bin(30, 20, 84, 116, body[i], lid[i], id(c_bg));
+
+        if (d >= 9999) {
+          it.printf(140, 60, id(font_art), id(c_white), TextAlign::CENTER_LEFT, "%s", names[i]);
+          it.printf(140, 100, id(font_name), id(c_dim), TextAlign::CENTER_LEFT, "keine Daten");
+        } else {
+          it.printf(140, 40, id(font_art), id(c_white), TextAlign::CENTER_LEFT, "%s", names[i]);
+
+          if (d <= 0) {
+            it.printf(140, 90, id(font_word), id(c_alert), TextAlign::CENTER_LEFT, "HEUTE");
+          } else if (d == 1) {
+            it.printf(140, 90, id(font_word), id(c_alert), TextAlign::CENTER_LEFT, "MORGEN");
+          } else {
+            it.printf(140, 90, id(font_hero), id(c_white), TextAlign::CENTER_LEFT, "%d", d);
+            int off = d < 10 ? 36 : (d < 100 ? 70 : 104);
+            it.printf(140 + off, 100, id(font_name), id(c_grey), TextAlign::CENTER_LEFT, "Tage");
+          }
+
+          date_str(d, true, buf, sizeof(buf));
+          it.printf(140, 132, id(font_name), id(c_grey), TextAlign::CENTER_LEFT, "%s", buf);
+        }
+
+        if (id(ha_time).now().is_valid())
+          it.strftime(W - 8, 10, id(font_head), id(c_dim), TextAlign::CENTER_RIGHT,
+                      "%H:%M", id(ha_time).now());
+        page_dots(0);
+
+      } else {
+        // ================= Seite 2: die drei danach =================
+        it.filled_rectangle(0, 0, W, 22, id(c_head_bg));
+        it.printf(8, 11, id(font_head), id(c_grey), TextAlign::CENTER_LEFT, "DANACH");
+        if (id(ha_time).now().is_valid())
+          it.strftime(W - 8, 11, id(font_head), id(c_grey), TextAlign::CENTER_RIGHT,
+                      "%d.%m.  %H:%M", id(ha_time).now());
+
+        for (int k = 1; k < N; k++) {
+          int i = ord[k];
+          int top = 26 + (k - 1) * 44;
+          it.filled_rectangle(8, top, 304, 40, id(c_card));
+          it.filled_rectangle(8, top, 4, 40, body[i]);       // Farbkante
+
+          draw_bin(24, top + 6, 22, 28, body[i], lid[i], id(c_card));
+
+          it.printf(62, top + 14, id(font_name), id(c_white), TextAlign::CENTER_LEFT,
+                    "%s", names[i]);
+          date_str(days[i], false, buf, sizeof(buf));
+          it.printf(62, top + 30, id(font_small), id(c_dim), TextAlign::CENTER_LEFT,
+                    "%s", buf);
+
+          if (days[i] >= 9999) {
+            it.printf(302, top + 20, id(font_name), id(c_dim), TextAlign::CENTER_RIGHT, "--");
+          } else if (days[i] <= 0) {
+            it.printf(302, top + 20, id(font_name), id(c_alert), TextAlign::CENTER_RIGHT, "heute");
+          } else if (days[i] == 1) {
+            it.printf(302, top + 20, id(font_name), id(c_alert), TextAlign::CENTER_RIGHT, "morgen");
+          } else {
+            it.printf(302, top + 20, id(font_name), id(c_white), TextAlign::CENTER_RIGHT,
+                      "in %d Tagen", days[i]);
+          }
+        }
+
+        page_dots(1);
+      }
